@@ -1,0 +1,65 @@
+name: Tests
+
+# Ubuntu: Core-Tests (billig). Windows: WPF-App bauen + Selbsttest, rendert alle Fensterzustände als PNG.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-tests:
+    name: Core-Tests (Ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+      - name: Testdaten-Tools
+        run: sudo apt-get install -y p7zip-full >/dev/null
+      - name: C#-Core-Tests
+        run: dotnet test tests/HasiZip.Core.Tests --nologo
+      - name: Benchmark gegen 7-Zip (nur Info)
+        continue-on-error: true
+        run: |
+          dotnet build src/HasiZip.Cli -c Release --nologo -v q
+          HZ=src/HasiZip.Cli/bin/Release/net10.0/hasizip
+          mkdir -p /tmp/bench && cp -r /usr/share/doc /tmp/bench/doc && cp -r /usr/lib/python3* /tmp/bench/ 2>/dev/null || true
+          du -sh /tmp/bench
+          # Exit 4 = übersprungene Dateien (kaputte Symlinks auf dem Runner) – gewollt
+          echo "== HasiZip"; time ($HZ a -o /tmp/hz.zip /tmp/bench >/dev/null 2>&1 || test $? -eq 4)
+          echo "== 7-Zip (zip)"; time 7z a -tzip /tmp/7z.zip /tmp/bench >/dev/null 2>&1 || true
+          ls -la /tmp/hz.zip /tmp/7z.zip
+          echo "== HasiZip entpacken"; time $HZ x /tmp/hz.zip /tmp/hz-out >/dev/null
+          echo "== 7-Zip entpacken"; time 7z x -o/tmp/7z-out /tmp/7z.zip >/dev/null
+
+  windows-app:
+    name: Windows-App + Selbsttest
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+      - name: Core-Tests
+        run: dotnet test tests/HasiZip.Core.Tests --nologo
+      - name: App bauen
+        run: dotnet build src/HasiZip.App -c Release --nologo
+      - name: Selbsttest (rendert Screenshots)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem src/HasiZip.App/bin/Release -Recurse -Filter HasiZip.exe | Select-Object -First 1
+          $p = Start-Process $exe.FullName -ArgumentList "--selftest", "$env:RUNNER_TEMP\hasizip-selftest" -Wait -PassThru -NoNewWindow
+          Get-ChildItem "$env:RUNNER_TEMP\hasizip-selftest"
+          if ($p.ExitCode -ne 0) { throw "Selbsttest fehlgeschlagen ($($p.ExitCode))" }
+      - uses: actions/upload-artifact@v5
+        with:
+          name: HasiZip-Screenshots
+          path: ${{ runner.temp }}/hasizip-selftest/*.png

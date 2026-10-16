@@ -1,5 +1,5 @@
 ; Inno Setup 6 — HasiZip für Windows
-; Aufruf: iscc installer\HasiZip.iss  (nach dotnet publish nach publish\app, siehe .github/workflows/hasizip-release.yml)
+; Aufruf: iscc installer\HasiZip.iss  (nach dotnet publish nach publish\app, siehe .github/workflows/release.yml)
 #define MyAppName "HasiZip"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Hasi Elektronic"

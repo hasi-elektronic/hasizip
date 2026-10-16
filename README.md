@@ -58,15 +58,14 @@ Exit-Codes: 0 ok, 1 Aufruf, 2 Lese-/Schreibfehler, 3 Passwort, 4 Dateien übersp
 ## Aufbau
 
 ```
-hasizip/
-  src/HasiZip.Core/   plattformneutral: ZipPacker (paralleles Deflate, eigener ZIP/ZIP64-Writer),
-                      Extractor (ZIP parallel; 7z/RAR/TAR/GZ/BZ2/XZ über SharpCompress), SafePath, SmartNames,
-                      InstanceCollector (bündelt Explorer-Mehrfachauswahl über eine Named Pipe)
-  src/HasiZip.App/    WPF-Oberfläche für Windows (Code-only, wie HasiShot)
-  src/HasiZip.Cli/    hasizip.exe
-  tests/              xUnit-Tests (Roundtrip, ZIP64, Zip Slip, Passwort, Abbruch, CRC-Fehler …)
-  installer/          Inno Setup 6 inkl. Kontextmenü (HKCU, keine Adminrechte nötig)
-  scripts/            make-icon.py, release.sh
+src/HasiZip.Core/   plattformneutral: ZipPacker (paralleles Deflate, eigener ZIP/ZIP64-Writer),
+                    Extractor (ZIP parallel; 7z/RAR/TAR/GZ/BZ2/XZ über SharpCompress), SafePath, SmartNames,
+                    InstanceCollector (bündelt Explorer-Mehrfachauswahl über eine Named Pipe)
+src/HasiZip.App/    WPF-Oberfläche für Windows (Code-only, wie HasiShot)
+src/HasiZip.Cli/    hasizip.exe
+tests/              xUnit-Tests (Roundtrip, ZIP64, Zip Slip, Passwort, Abbruch, CRC-Fehler …)
+installer/          Inno Setup 6 inkl. Kontextmenü (HKCU, keine Adminrechte nötig)
+scripts/            make-icon.py, release.sh
 ```
 
 ## Bauen & Testen
@@ -74,17 +73,17 @@ hasizip/
 Voraussetzung: .NET 10 SDK.
 
 ```bash
-dotnet test hasizip/tests/HasiZip.Core.Tests          # läuft auch auf Linux/macOS
-dotnet build hasizip/src/HasiZip.App -c Release       # auf Mac/Linux nur kompilierbar
+dotnet test tests/HasiZip.Core.Tests          # läuft auch auf Linux/macOS
+dotnet build src/HasiZip.App -c Release       # auf Mac/Linux nur kompilierbar
 HasiZip.exe --selftest C:\Temp\hz                     # rendert alle Fensterzustände als PNG + Roundtrip
 ```
 
-- **CI:** `.github/workflows/hasizip-ci.yml` – bei Änderungen unter `hasizip/`: Core-Tests auf Ubuntu,
+- **CI:** `.github/workflows/ci.yml` – bei jedem Push/PR: Core-Tests auf Ubuntu,
   App-Build + Selbsttest auf Windows (Screenshots als Artefakt „HasiZip-Screenshots“).
-- **Release:** `hasizip/scripts/release.sh 1.1.0` setzt die Version, taggt `hasizip-v1.1.0` und pusht.
-  `.github/workflows/hasizip-release.yml` baut daraus `HasiZip-Setup-1.1.0.exe` und `HasiZip-CLI-1.1.0-win-x64.zip`
+- **Release:** `scripts/release.sh 1.1.0` setzt die Version, taggt `v1.1.0` und pusht.
+  `.github/workflows/release.yml` baut daraus `HasiZip-Setup-1.1.0.exe` und `HasiZip-CLI-1.1.0-win-x64.zip`
   und legt ein GitHub Release an.
-- **Icon neu erzeugen:** `python3 hasizip/scripts/make-icon.py` (Pillow).
+- **Icon neu erzeugen:** `python3 scripts/make-icon.py` (Pillow).
 
 ## Grenzen (v1.0)
 

@@ -1,0 +1,74 @@
+name: Build & Release
+
+# Läuft NUR bei einem Versions-Tag (v1.2.3) oder manuell („Run workflow“).
+# Neue Version veröffentlichen: scripts/release.sh 1.1.0
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Windows Setup
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Tests
+        run: dotnet test tests/HasiZip.Core.Tests --nologo
+
+      # Ordner statt Single-File: startet aus dem Kontextmenü ohne Entpack-Verzögerung (ReadyToRun = kein JIT-Warmlauf)
+      - name: Publish App
+        run: dotnet publish src/HasiZip.App -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -p:DebugType=none -o publish/app
+
+      - name: Publish CLI (hasizip.exe)
+        run: dotnet publish src/HasiZip.Cli -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -o publish/cli
+
+      - name: Selbsttest der veröffentlichten App
+        shell: pwsh
+        run: |
+          $p = Start-Process publish/app/HasiZip.exe -ArgumentList "--selftest", "$env:RUNNER_TEMP\st" -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "Selbsttest fehlgeschlagen" }
+
+      - name: Installer (Inno Setup)
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\HasiZip.iss
+          $v = (Select-String -Path installer\HasiZip.iss -Pattern '#define MyAppVersion "(.+)"').Matches[0].Groups[1].Value
+          Compress-Archive -Path publish\cli\hasizip.exe -DestinationPath "dist\HasiZip-CLI-$v-win-x64.zip"
+          Get-ChildItem dist
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: HasiZip-Windows
+          path: |
+            dist/*.exe
+            dist/*.zip
+
+  release:
+    name: GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: HasiZip ${{ github.ref_name }}
+          files: |
+            artifacts/HasiZip-Windows/*.exe
+            artifacts/HasiZip-Windows/*.zip
+          generate_release_notes: false
+          body: "HasiZip für Windows – Setup (mit Kontextmenü) und Kommandozeilen-Version."

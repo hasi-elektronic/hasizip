@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>HasiZip.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Lesen von 7z, RAR, TAR, GZ, BZ2, XZ und verschlüsselten ZIPs -->
+    <PackageReference Include="SharpCompress" Version="0.50.5" />
+    <!-- Vektorisierte CRC-32 -->
+    <PackageReference Include="System.IO.Hashing" Version="10.0.13" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="HasiZip.Core.Tests" />
+  </ItemGroup>
+</Project>

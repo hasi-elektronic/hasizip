@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/hasizip.ico</ApplicationIcon>
+    <AssemblyName>HasiZip</AssemblyName>
+    <RootNamespace>HasiZip.App</RootNamespace>
+    <Version>1.0.0</Version>
+    <Company>Hasi Elektronic</Company>
+    <Product>HasiZip</Product>
+    <Copyright>© Hasi Elektronic</Copyright>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets/hasizip.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../HasiZip.Core/HasiZip.Core.csproj" />
+  </ItemGroup>
+</Project>

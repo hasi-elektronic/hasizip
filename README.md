@@ -81,6 +81,7 @@ HasiZip.exe --selftest C:\Temp\hz                     # rendert alle Fensterzust
 - **CI:** `.github/workflows/ci.yml` – bei jedem Push/PR: Core-Tests auf Ubuntu,
   App-Build + Selbsttest auf Windows (Screenshots als Artefakt „HasiZip-Screenshots“).
 - **Release:** `scripts/release.sh 1.1.0` setzt die Version, taggt `v1.1.0` und pusht.
+  Alternativ: GitHub → Actions → „Build & Release“ → „Run workflow“ (legt Tag und Release selbst an).
   `.github/workflows/release.yml` baut daraus `HasiZip-Setup-1.1.0.exe` und `HasiZip-CLI-1.1.0-win-x64.zip`
   und legt ein GitHub Release an.
 - **Icon neu erzeugen:** `python3 scripts/make-icon.py` (Pillow).

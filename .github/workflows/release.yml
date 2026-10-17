@@ -85,7 +85,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: HasiZip ${{ steps.v.outputs.tag }}
           files: |
-            artifacts/HasiZip-Windows/*.exe
-            artifacts/HasiZip-Windows/*.zip
+            artifacts/**/*.exe
+            artifacts/**/*.zip
           generate_release_notes: false
           body: "HasiZip für Windows – Setup (mit Kontextmenü) und Kommandozeilen-Version."

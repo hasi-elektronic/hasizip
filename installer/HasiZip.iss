@@ -29,6 +29,11 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
 ChangesAssociations=yes
+#ifdef SIGN
+; Setup und Deinstallationsprogramm signieren (ISCC /DSIGN "/Shasi=…", siehe .github/workflows/release.yml)
+SignTool=hasi
+SignedUninstaller=yes
+#endif
 
 [Languages]
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"

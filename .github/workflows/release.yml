@@ -18,6 +18,7 @@ concurrency:
 
 permissions:
   contents: write
+  id-token: write # Anmeldung bei Azure zum Signieren (Windows)
 
 jobs:
   windows:
@@ -45,13 +46,56 @@ jobs:
           $p = Start-Process publish/app/HasiZip.exe -ArgumentList "--selftest", "$env:RUNNER_TEMP\st" -Wait -PassThru -NoNewWindow
           if ($p.ExitCode -ne 0) { throw "Selbsttest fehlgeschlagen" }
 
+      # Signatur mit Microsoft Artifact Signing ("Hasi-Elektronic"). Anmeldung per OIDC – keine Secrets nötig:
+      # Die IDs sind nicht geheim, Azure lässt nur Workflows aus hasi-elektronic/* zu.
+      - name: Azure-Anmeldung (Signatur)
+        if: runner.os == 'Windows'
+        uses: azure/login@v2
+        with:
+          client-id: 5a2bd4d9-004a-4280-a1fd-b46f846dc62a
+          tenant-id: c3f2023b-fc42-4fdd-a45d-d70fe78cd294
+          subscription-id: ae83a62f-4d85-46f0-b0ac-f823fef82750
+
+      - name: Signatur vorbereiten
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $jar = Join-Path $env:RUNNER_TEMP 'jsign.jar'
+          Invoke-WebRequest https://github.com/ebourg/jsign/releases/download/7.1/jsign-7.1.jar -OutFile $jar
+          $token = az account get-access-token --resource https://codesigning.azure.net --query accessToken -o tsv
+          if (-not $token) { throw 'Kein Zugriffstoken für Artifact Signing' }
+          Write-Host "::add-mask::$token"
+          $script = Join-Path $env:GITHUB_WORKSPACE 'scripts\sign-win.ps1'
+          @(
+            "JSIGN_JAR=$jar", "SIGN_TOKEN=$token", 'SIGN_HOST=neu.codesigning.azure.net',
+            'SIGN_ACCOUNT=hasi-elektronic-signing', 'SIGN_PROFILE=hasi-pdf', 'SIGN_NAME=HasiZip',
+            "SIGN_SCRIPT=$script"
+          ) | Add-Content $env:GITHUB_ENV
+
+      - name: Programme signieren
+        shell: pwsh
+        run: scripts/sign-win.ps1 publish/app/HasiZip.exe publish/cli/hasizip.exe
+
       - name: Installer (Inno Setup)
         shell: pwsh
         run: |
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\HasiZip.iss
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if ($env:SIGN_TOKEN) { & $iscc /DSIGN "/Shasi=pwsh -NoProfile -File $env:SIGN_SCRIPT `$f" installer\HasiZip.iss }
+          else { & $iscc installer\HasiZip.iss }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $v = (Select-String -Path installer\HasiZip.iss -Pattern '#define MyAppVersion "(.+)"').Matches[0].Groups[1].Value
           Compress-Archive -Path publish\cli\hasizip.exe -DestinationPath "dist\HasiZip-CLI-$v-win-x64.zip"
           Get-ChildItem dist
+
+      - name: Signatur prüfen
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          foreach ($f in Get-ChildItem dist/*.exe, publish/app/HasiZip.exe, publish/cli/hasizip.exe) {
+            $s = Get-AuthenticodeSignature $f.FullName
+            Write-Host "$($f.Name): $($s.Status) – $($s.SignerCertificate.Subject)"
+            if ($s.Status -ne 'Valid') { Write-Host "::error title=Nicht signiert::$($f.Name)"; exit 1 }
+          }
 
       - uses: actions/upload-artifact@v5
         with:
